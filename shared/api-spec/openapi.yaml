@@ -1,0 +1,490 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: API specification for BookWise India - multi-vertical booking app
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: categories
+    description: Service categories
+  - name: locations
+    description: Indian city locations
+  - name: services
+    description: Bookable services
+  - name: bookings
+    description: Bookings and payments
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /categories:
+    get:
+      operationId: listCategories
+      tags: [categories]
+      summary: List service categories
+      responses:
+        "200":
+          description: List of categories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Category"
+
+  /locations:
+    get:
+      operationId: listLocations
+      tags: [locations]
+      summary: List Indian city locations available
+      responses:
+        "200":
+          description: List of locations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Location"
+
+  /services:
+    get:
+      operationId: listServices
+      tags: [services]
+      summary: List services, optionally filtered by category and/or city
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: city
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of services
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Service"
+
+  /services/featured:
+    get:
+      operationId: listFeaturedServices
+      tags: [services]
+      summary: Get a small set of featured/trending services for the homepage
+      responses:
+        "200":
+          description: Featured services
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Service"
+
+  /services/{id}:
+    get:
+      operationId: getService
+      tags: [services]
+      summary: Get a single service by id
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Service details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Service"
+        "404":
+          description: Not found
+
+  /bookings:
+    get:
+      operationId: listBookings
+      tags: [bookings]
+      summary: List bookings for the Trav-World author, most recent first
+      responses:
+        "200":
+          description: List of bookings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Booking"
+        "403":
+          description: Author access required
+    post:
+      operationId: createBooking
+      tags: [bookings]
+      summary: Create a booking as the Trav-World author
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBookingInput"
+      responses:
+        "201":
+          description: Booking created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Booking"
+        "400":
+          description: Invalid input
+        "403":
+          description: Author access required
+
+  /bookings/access:
+    get:
+      operationId: getBookingAccess
+      tags: [bookings]
+      summary: Check whether the signed-in user is the Trav-World author
+      responses:
+        "200":
+          description: Author access result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookingAccess"
+
+  /bookings/public-history:
+    get:
+      operationId: getPublicBookingHistory
+      tags: [bookings]
+      summary: Get anonymized aggregate booking history for public display
+      responses:
+        "200":
+          description: Aggregate booking counts with no personal details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicBookingHistory"
+
+  /bookings/{id}:
+    get:
+      operationId: getBooking
+      tags: [bookings]
+      summary: Get a single booking by id
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Booking details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Booking"
+        "404":
+          description: Not found
+        "403":
+          description: Author access required
+
+  /bookings/{id}/cancel:
+    post:
+      operationId: cancelBooking
+      tags: [bookings]
+      summary: Cancel a booking
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Booking cancelled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Booking"
+        "404":
+          description: Not found
+        "403":
+          description: Author access required
+
+  /bookings/summary:
+    get:
+      operationId: getBookingsSummary
+      tags: [bookings]
+      summary: Aggregate counts of bookings by status and payment method (dashboard wow endpoint)
+      responses:
+        "200":
+          description: Summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookingsSummary"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    Category:
+      type: object
+      properties:
+        slug:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        icon:
+          type: string
+      required: [slug, name, description, icon]
+
+    Location:
+      type: object
+      properties:
+        city:
+          type: string
+        state:
+          type: string
+      required: [city, state]
+
+    Service:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        category:
+          type: string
+        categoryLabel:
+          type: string
+        description:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        address:
+          type: string
+        price:
+          type: number
+        rating:
+          type: number
+        reviewCount:
+          type: integer
+        imageUrl:
+          type: string
+        trending:
+          type: boolean
+      required:
+        - id
+        - name
+        - category
+        - categoryLabel
+        - description
+        - city
+        - state
+        - address
+        - price
+        - rating
+        - reviewCount
+        - imageUrl
+        - trending
+
+    PaymentMethod:
+      type: string
+      enum: [card, upi, offline]
+
+    BookingStatus:
+      type: string
+      enum: [confirmed, pending_at_store, cancelled]
+
+    CreateBookingInput:
+      type: object
+      properties:
+        serviceId:
+          type: string
+        customerName:
+          type: string
+        phone:
+          type: string
+        email:
+          type: string
+        date:
+          type: string
+          format: date
+        time:
+          type: string
+        guests:
+          type: integer
+        notes:
+          type: string
+        paymentMethod:
+          $ref: "#/components/schemas/PaymentMethod"
+      required:
+        - serviceId
+        - customerName
+        - phone
+        - date
+        - time
+        - paymentMethod
+
+    Booking:
+      type: object
+      properties:
+        id:
+          type: string
+        appointmentId:
+          type: string
+          description: Human-readable appointment reference
+        patientId:
+          type: string
+          description: Patient reference generated for this booking
+        doctorId:
+          type: string
+          description: Doctor reference when this booking is for a doctor
+        doctorRoomNo:
+          type: string
+          description: Doctor consultation room when this booking is for a doctor
+        service:
+          $ref: "#/components/schemas/Service"
+        customerName:
+          type: string
+        phone:
+          type: string
+        email:
+          type: string
+        date:
+          type: string
+        time:
+          type: string
+        guests:
+          type: integer
+        notes:
+          type: string
+        paymentMethod:
+          $ref: "#/components/schemas/PaymentMethod"
+        status:
+          $ref: "#/components/schemas/BookingStatus"
+        amount:
+          type: number
+        createdAt:
+          type: string
+      required:
+        - id
+        - service
+        - customerName
+        - phone
+        - date
+        - time
+        - paymentMethod
+        - status
+        - amount
+        - createdAt
+
+    BookingAccess:
+      type: object
+      properties:
+        isAuthor:
+          type: boolean
+      required: [isAuthor]
+
+    PublicBookingHistory:
+      type: object
+      properties:
+        totalBookings:
+          type: integer
+        byMonth:
+          type: array
+          items:
+            type: object
+            properties:
+              month:
+                type: string
+              count:
+                type: integer
+            required: [month, count]
+        byCategory:
+          type: array
+          items:
+            type: object
+            properties:
+              category:
+                type: string
+              count:
+                type: integer
+            required: [category, count]
+        byStatus:
+          type: array
+          items:
+            type: object
+            properties:
+              status:
+                $ref: "#/components/schemas/BookingStatus"
+              count:
+                type: integer
+            required: [status, count]
+      required: [totalBookings, byMonth, byCategory, byStatus]
+
+    BookingsSummary:
+      type: object
+      properties:
+        totalBookings:
+          type: integer
+        confirmed:
+          type: integer
+        pendingAtStore:
+          type: integer
+        cancelled:
+          type: integer
+        byPaymentMethod:
+          type: object
+          properties:
+            card:
+              type: integer
+            upi:
+              type: integer
+            offline:
+              type: integer
+          required: [card, upi, offline]
+      required:
+        - totalBookings
+        - confirmed
+        - pendingAtStore
+        - cancelled
+        - byPaymentMethod
