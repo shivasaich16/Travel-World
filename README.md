@@ -1,2 +1,2 @@
-# Trav-World
+# Travel-World
 Travel Guide
